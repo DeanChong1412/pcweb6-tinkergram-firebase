@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Card, Col, Container, Image, Nav, Navbar, Row } from "react-bootstrap";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate, useParams } from "react-router-dom";
-import { auth, db } from "../firebase";
+import { auth, db, storage } from "../firebase";
 import { signOut } from "firebase/auth"
 import { deleteDoc, doc, getDoc } from "firebase/firestore";
-import { getStorage, ref, deleteObject } from "firebase/storage";
+import { ref, deleteObject } from "firebase/storage";
 
 export default function PostPageDetails() {
   const [caption, setCaption] = useState("");
@@ -15,18 +15,36 @@ export default function PostPageDetails() {
   const [user, loading] = useAuthState(auth);
   const navigate = useNavigate();
 
+  // async function deletePost(id) {
+  //   // delete from storage
+  //   const postDocument = await getDoc(doc(db, "posts", id));
+  //   const post = postDocument.data();
+  //   const desertRef = ref(getStorage, `images/${post.imageName}`);
+  //   deleteObject(desertRef).then(() => {
+  //       console.log("deleted from firebase storage")
+  //   }).catch((error) => {
+  //       console.error(error.message)
+  //   });
+
+  //   await deleteDoc(doc(db, "posts", id));
+  //   navigate("/");
+  // }
+
   async function deletePost(id) {
-    // delete from storage
     const postDocument = await getDoc(doc(db, "posts", id));
     const post = postDocument.data();
-    const desertRef = ref(getStorage, `images/${post.imageName}`);
-    deleteObject(desertRef).then(() => {
-        console.log("deleted from firebase storage")
-    }).catch((error) => {
-        console.error(error.message)
-    });
-
     await deleteDoc(doc(db, "posts", id));
+
+    // Try to get the images/x.jpeg file path out of the full path
+    const url = new URL(post.image);
+    const pathParts = url.pathname.split("/");
+    let refPath = pathParts[pathParts.length - 1];
+    refPath = decodeURIComponent(refPath);
+    console.log(refPath);
+
+    const imageReference = ref(storage, refPath);
+    await deleteObject(imageReference);
+
     navigate("/");
   }
 
